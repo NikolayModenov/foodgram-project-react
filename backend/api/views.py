@@ -1,9 +1,12 @@
+import logging
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet, GenericViewSet
 from rest_framework.filters import SearchFilter
+from django.forms.models import model_to_dict
 
 
-from recipe.models import Tag, Recipe, Ingredient
-from api.serializers import TagSerializer, RecipeSerializer, IngredientSerializer
+
+from recipe.models import Tag, Recipe, Product
+from api.serializers import TagSerializer, RecipeSerializer, ProductSerializer
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from django.shortcuts import get_object_or_404
 
@@ -16,11 +19,11 @@ class TagViewSet(ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class IngredientViewSet(ReadOnlyModelViewSet):
+class ProductViewSet(ReadOnlyModelViewSet):
     """Вьюсет для жанров."""
 
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
     filter_backends = (SearchFilter,)
     search_fields = ('^name')
     pagination_class = None

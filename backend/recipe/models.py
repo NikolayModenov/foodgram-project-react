@@ -34,14 +34,14 @@ class Follow(models.Model):
         ]
 
 
-class Ingredient(models.Model):
+class Product(models.Model):
     name = models.CharField(max_length=16)
     measurement_unit = models.CharField(max_length=16)
 
     class Meta:
         # verbose_name = 'Произведение'
         # verbose_name_plural = 'Произведения'
-        default_related_name = 'ingredient'
+        default_related_name = 'product'
 
 
 class Tag(models.Model):
@@ -50,16 +50,16 @@ class Tag(models.Model):
     slug = models.SlugField(max_length=100, unique=True)
 
 
-class RecipeIngredient(models.Model):
-    amount = models.FloatField()
-    # recipe = models.ForeignKey(
-    #     Recipe,
-    #     on_delete=models.CASCADE
-    # )
-    ingredient = models.ForeignKey(
-        Ingredient,
-        on_delete=models.CASCADE
-    )
+# class RecipeIngredient(models.Model):
+#     amount = models.FloatField()
+#     recipe = models.ForeignKey(
+#         Recipe,
+#         on_delete=models.CASCADE
+#     )
+#     ingredient = models.ForeignKey(
+#         Ingredient,
+#         on_delete=models.CASCADE
+#     )
 
 
 class Recipe(models.Model):
@@ -75,10 +75,19 @@ class Recipe(models.Model):
         default=None
     )
     text = models.TextField()
-    ingredients = models.ManyToManyField(
-        RecipeIngredient,
-        # on_delete=models.CASCADE
-    )
+    # ingredients = models.ManyToManyField(
+    #     Product, through='Ingredient'
+    #     # on_delete=models.CASCADE
+    # )
+    # ingredients = models.ForeignKey(
+    #     RecipeIngredient,
+    #     on_delete=models.CASCADE
+    # )
+    # ingredients = models.ForeignKey(
+        
+    #     Ingredient,
+    #     on_delete=models.SET_NULL, null=True, blank=True,
+    # )
     tags = models.ManyToManyField(
         Tag,
         related_name='tag'
@@ -103,13 +112,18 @@ class Recipe(models.Model):
 #     )
 
 
-# class RecipeIngredient(models.Model):
-#     amount = models.FloatField()
-#     recipe = models.ForeignKey(
-#         Recipe,
-#         on_delete=models.CASCADE
-#     )
-#     ingredient = models.ForeignKey(
-#         Ingredient,
-#         on_delete=models.CASCADE
-#     )
+class Ingredient(models.Model):
+    amount = models.FloatField()
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
+        default_related_name = 'ingredients'

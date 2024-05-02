@@ -1,7 +1,15 @@
 import base64
 import six
+import logging
 from collections import OrderedDict
 from django.forms.models import model_to_dict
+from collections.abc import Mapping
+from rest_framework.validators import ValidationError
+from rest_framework.settings import api_settings
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.fields import get_error_detail, set_value, SkipField
+from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
+
 
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
@@ -10,7 +18,7 @@ from djoser.serializers import UserCreateSerializer
 
 import webcolors
 from django.core.files.base import ContentFile
-from recipe.models import Tag, FoodgramUser, Recipe, Ingredient, RecipeIngredient
+from recipe.models import Tag, FoodgramUser, Recipe, Product, Ingredient
 
 
 class FoodgramUserSerializer(UserCreateSerializer):
@@ -51,18 +59,12 @@ class TagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class IngredientSerializer(serializers.ModelSerializer):
+class ProductSerializer(serializers.ModelSerializer):
     """Сериализатор категории."""
 
     class Meta:
-        model = Ingredient
+        model = Product
         fields = '__all__'
-
-
-class IngredientPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
-    def to_representation(self, value):
-        ingredient = get_object_or_404(Ingredient, pk=value.pk)
-        return model_to_dict(ingredient)
 
 
 class TagPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
@@ -70,36 +72,21 @@ class TagPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
         return model_to_dict(value)
 
 
-class RecipeIngredientSerializer(serializers.ModelSerializer):
+class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор категории."""
 
-    id = serializers.IntegerField()
-    amount = serializers.FloatField(required=False)
-
     class Meta:
-        model = RecipeIngredient
-        fields = 'id', 'amount'
+        model = Ingredient
+        fields = 'id', 'product', 'amount'
+
+    def to_internal_value(self, data):
+        data['product'] = data.pop('id')
+        return super().to_internal_value(data)
 
     def to_representation(self, instance):
-        ingredient = get_object_or_404(Ingredient, pk=model_to_dict(instance)['ingredient'])
-        ret = OrderedDict()
-
-        fields = self._readable_fields
-
-        for field in fields:
-            try:
-                attribute = field.get_attribute(instance)
-            except serializers.SkipField:
-                continue
-            check_for_none = attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
-            if check_for_none is None:
-                ret[field.field_name] = None
-            else:
-                ret[field.field_name] = field.to_representation(attribute)
-        ret['id'] = ingredient.id
-        ret['name'] = ingredient.name
-        ret['measurement_unit'] = ingredient.measurement_unit
-        return ret
+        result = model_to_dict(instance.product)
+        result['amount'] = instance.amount
+        return result
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -107,7 +94,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
     image = Base64ImageField(required=False)
     tags = TagPrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    ingredients = RecipeIngredientSerializer(many=True)
+    ingredients = IngredientSerializer(many=True)
 
     class Meta:
         model = Recipe
@@ -120,24 +107,23 @@ class RecipeSerializer(serializers.ModelSerializer):
         recipe.tags.set(tags)
         for ingredient_data in ingredients:
             amount = ingredient_data['amount']
-            ingredient = get_object_or_404(Ingredient, pk=ingredient_data['id'])
-            recipe_item = RecipeIngredient.objects.create(ingredient=ingredient, amount=amount)
-            recipe.ingredients.add(recipe_item)
+            product = ingredient_data['product']
+            Ingredient.objects.create(recipe=recipe, amount=amount, product=product)
         return recipe
 
-    def update(self, instance, validated_data):
-        tags = validated_data.pop('tags')
-        ingredients_data = validated_data.pop('ingredients')
-        instance.tags.set(tags)
-        ingredients = list()
-        for ingredient_data in ingredients_data:
-            amount = ingredient_data['amount']
-            ingredient = get_object_or_404(Ingredient, pk=ingredient_data['id'])
-            print(f'ingredient iter = {ingredient}')
-            recipe_item, status = RecipeIngredient.objects.get_or_create(ingredient=ingredient, amount=amount)
-            print(f'recipe item iter = {recipe_item}')
-            print(f'type recipe item iter = {type(recipe_item)}')
-            ingredients.append(recipe_item)
-        print(f'ingredients = {ingredients}')
-        instance.ingredients.set(ingredients)
-        return instance
+    # def update(self, instance, validated_data):
+    #     tags = validated_data.pop('tags')
+    #     ingredients_data = validated_data.pop('ingredients')
+    #     instance.tags.set(tags)
+    #     ingredients = list()
+    #     for ingredient_data in ingredients_data:
+    #         amount = ingredient_data['amount']
+    #         ingredient = get_object_or_404(Ingredient, pk=ingredient_data['id'])
+    #         print(f'ingredient iter = {ingredient}')
+    #         recipe_item, status = RecipeIngredient.objects.get_or_create(ingredient=ingredient, amount=amount)
+    #         print(f'recipe item iter = {recipe_item}')
+    #         print(f'type recipe item iter = {type(recipe_item)}')
+    #         ingredients.append(recipe_item)
+    #     print(f'ingredients = {ingredients}')
+    #     instance.ingredients.set(ingredients)
+    #     return instance
