@@ -45,7 +45,8 @@ class RecipeFilter(FilterSet):
 
     def base_filtration(self, queryset, value, kwargs):
         '''
-        Returns bool, there is an entry with the specified parameters in the model
+        Returns bool,
+        there is an entry with the specified parameters in the model
         or not.
         '''
         if value and self.request.user.is_authenticated:

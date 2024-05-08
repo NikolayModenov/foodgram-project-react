@@ -70,7 +70,9 @@ favorite_router = FavoriteRouter()
 router_v1.register('tags', TagViewSet, basename='tags')
 router_v1.register('recipes', RecipeViewSet, basename='recipes')
 router_v1.register('ingredients', ProductViewSet, basename='ingredients')
-shopping_cart_router.register('', ShoppingCartViewSet, basename='shopping_cart')
+shopping_cart_router.register(
+    '', ShoppingCartViewSet, basename='shopping_cart'
+)
 follow_router.register('', FollowViewSet, basename='subscribe')
 favorite_router.register('', FavoriteViewSet, basename='subscribe')
 

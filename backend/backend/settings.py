@@ -8,7 +8,6 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 SECRET_KEY = os.getenv('SECRET_KEY', default='default')
 
 DEBUG = os.getenv('DEBUG', default=False)
@@ -141,7 +140,7 @@ DJOSER = {
         'user_create': 'api.serializers.FoodgramUserSerializer',
         'user': 'api.serializers.FoodgramUserSerializer',
         'current_user': 'api.serializers.FoodgramUserSerializer',
-        },
+    },
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny'],
         'user': ['rest_framework.permissions.AllowAny'],

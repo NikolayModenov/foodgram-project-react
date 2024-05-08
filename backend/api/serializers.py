@@ -1,6 +1,5 @@
 import base64
 
-from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
