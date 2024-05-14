@@ -69,7 +69,7 @@ class FoodgramUserViewSet(UserViewSet):
         methods=['GET'],
         detail=False,
         url_path=GET_SUBSCRIPTIONS_URL_PATH_NAME,
-        permission_classes=[IsAuthenticated,],
+        permission_classes=[IsAuthenticated, ],
         serializer_class=FollowSerializer,
     )
     def get_subscriptions(self, request):
@@ -87,7 +87,7 @@ class FoodgramUserViewSet(UserViewSet):
         methods=['POST', 'DELETE'],
         detail=True,
         url_path=SUBSCRIBE_URL_PATH_NAME,
-        permission_classes=[IsAuthenticated,]
+        permission_classes=[IsAuthenticated, ]
     )
     def change_subscription_to_author(self, request, **kwargs):
         if str(request.user.pk) == kwargs['id']:
