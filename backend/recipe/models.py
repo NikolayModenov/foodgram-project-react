@@ -1,19 +1,35 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator
 from django.db import models
 
-MAX_LENGTH = 150
+from recipe.validators import (
+    validate_amount, validate_hex_color, validate_username
+)
+
+USER_CHARFIELD_MAX_LENGTH = 150
+EMAIL_MAX_LENGTH = 254
+CHARFIELD_MAX_LENGTH = 200
+COLOR_MAX_LENGTH = 7
 
 
 class FoodgramUser(AbstractUser):
 
-    email = models.EmailField('email address', unique=True)
-    first_name = models.CharField('first name', max_length=MAX_LENGTH)
-    last_name = models.CharField('last name', max_length=MAX_LENGTH)
+    email = models.EmailField(
+        'Адрес электронной почты', unique=True, max_length=EMAIL_MAX_LENGTH
+    )
+    first_name = models.CharField('Имя', max_length=USER_CHARFIELD_MAX_LENGTH)
+    last_name = models.CharField(
+        'Фамилия', max_length=USER_CHARFIELD_MAX_LENGTH
+    )
+    username = models.CharField(
+        'Имя пользователя', max_length=USER_CHARFIELD_MAX_LENGTH, unique=True,
+        validators=[validate_username]
+    )
+    password = models.CharField('Пароль', max_length=USER_CHARFIELD_MAX_LENGTH)
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        default_related_name = 'user'
         ordering = ('email',)
 
     def __str__(self):
@@ -23,53 +39,58 @@ class FoodgramUser(AbstractUser):
 class Follow(models.Model):
 
     user = models.ForeignKey(
-        FoodgramUser, on_delete=models.CASCADE, related_name='follower'
+        FoodgramUser, on_delete=models.CASCADE, related_name='users',
+        verbose_name='Подписчик'
     )
-    following = models.ForeignKey(
+    author = models.ForeignKey(
         FoodgramUser, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='following'
+        related_name='authors', verbose_name='Автор'
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'following'],
-                name='unique_following'
+                fields=['user', 'author'],
+                name='unique_author'
             )
         ]
         verbose_name = 'Подписчик'
         verbose_name_plural = 'Подписчики'
-        ordering = ('user', 'following')
+        ordering = ('user', 'author')
 
     def __str__(self):
-        return f'{self.user[:30]}'
+        return f'{self.user.last_name[:30]} {self.user.first_name[:30]}'
 
 
 class Product(models.Model):
 
-    name = models.CharField(max_length=16)
-    measurement_unit = models.CharField(max_length=16)
+    name = models.CharField('Название', max_length=CHARFIELD_MAX_LENGTH)
+    measurement_unit = models.CharField(
+        'Еденица имзмерения', max_length=CHARFIELD_MAX_LENGTH
+    )
 
     class Meta:
         verbose_name = 'Продукт'
         verbose_name_plural = 'Продукты'
-        default_related_name = 'product'
         ordering = ('name', 'measurement_unit')
 
     def __str__(self):
-        return f'{self.name[:30]}'
+        return f'{self.name[:30]} {self.measurement_unit[:30]}'
 
 
 class Tag(models.Model):
 
-    name = models.CharField(max_length=16)
-    color = models.CharField(max_length=16)
-    slug = models.SlugField(max_length=100, unique=True)
+    name = models.CharField('Название', max_length=CHARFIELD_MAX_LENGTH)
+    color = models.CharField(
+        'Цвет', max_length=COLOR_MAX_LENGTH, validators=[validate_hex_color]
+    )
+    slug = models.SlugField(
+        'Метка', max_length=CHARFIELD_MAX_LENGTH, unique=True
+    )
 
     class Meta:
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
-        default_related_name = 'tags'
         ordering = ('slug',)
 
     def __str__(self):
@@ -80,18 +101,23 @@ class Recipe(models.Model):
 
     author = models.ForeignKey(
         FoodgramUser,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Автор'
     )
-    name = models.CharField(max_length=16)
+    name = models.CharField('Название', max_length=CHARFIELD_MAX_LENGTH)
     image = models.ImageField(
+        'Изображение',
         upload_to='api/images/',
     )
-    text = models.TextField()
+    text = models.TextField('Описание')
     tags = models.ManyToManyField(
         Tag,
-        related_name='tag'
+        related_name='tag',
+        verbose_name='Тэг'
     )
-    cooking_time = models.IntegerField()
+    cooking_time = models.IntegerField(
+        'Время приготовления', validators=[MinValueValidator(1)]
+    )
     pub_date = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Добавлено'
@@ -107,36 +133,43 @@ class Recipe(models.Model):
         return f'{self.name[:30]}'
 
 
-class Favorite(models.Model):
+class FavoriteShoppingCartBase(models.Model):
 
     user = models.ForeignKey(
-        FoodgramUser, on_delete=models.CASCADE, related_name='favorite'
+        FoodgramUser, on_delete=models.CASCADE, verbose_name='Пользователь'
     )
-    favorite_recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE,
-        related_name='favorite'
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
     )
 
     class Meta:
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранное'
-        default_related_name = 'favorite'
-        ordering = ('user', 'favorite_recipe')
+        abstract = True
+        ordering = ('user', 'recipe')
 
     def __str__(self):
         return f'{self.user.last_name[:30]} {self.user.first_name[:30]}'
 
 
+class Favorite(FavoriteShoppingCartBase):
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+        default_related_name = 'favorites'
+
+
 class Ingredient(models.Model):
 
-    amount = models.FloatField()
+    amount = models.FloatField('Количество', validators=[validate_amount])
     recipe = models.ForeignKey(
         Recipe,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт'
     )
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='Продукт'
     )
 
     class Meta:
@@ -149,21 +182,9 @@ class Ingredient(models.Model):
         return f'{self.product.name[:30]} {self.recipe.name[:30]}'
 
 
-class ShoppingCart(models.Model):
-
-    user = models.ForeignKey(
-        FoodgramUser, on_delete=models.CASCADE
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-    )
+class ShoppingCart(FavoriteShoppingCartBase):
 
     class Meta:
-        verbose_name = 'Корзина покупок'
-        verbose_name_plural = 'Покупки'
-        default_related_name = 'shopping_cart'
-        ordering = ('user', 'recipe')
-
-    def __str__(self):
-        return f'{self.user.last_name[:30]} {self.user.first_name[:30]}'
+        verbose_name = 'Рецепт для покупок'
+        verbose_name_plural = 'Рецепты для покупок'
+        default_related_name = 'shopping_carts'

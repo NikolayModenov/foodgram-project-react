@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -16,7 +15,6 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(', ')
 
 
 INSTALLED_APPS = [
-    'recipe.apps.RecipeConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -26,8 +24,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
-    'api.apps.ApiConfig',
     'django_filters',
+    'api.apps.ApiConfig',
+    'recipe.apps.RecipeConfig',
 ]
 
 MIDDLEWARE = [
@@ -61,7 +60,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-if os.getenv('PARAMETER', default='test') in sys.argv:
+if os.getenv('ENV_TYPE') == 'test':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -137,7 +136,7 @@ DJOSER = {
     'HIDE_USERS': False,
     "LOGIN_FIELD": "email",
     'SERIALIZERS': {
-        'user_create': 'api.serializers.FoodgramUserSerializer',
+        'user_create': 'api.serializers.CreateUserSerializer',
         'user': 'api.serializers.FoodgramUserSerializer',
         'current_user': 'api.serializers.FoodgramUserSerializer',
     },
@@ -149,5 +148,9 @@ DJOSER = {
 
 AUTH_USER_MODEL = 'recipe.FoodgramUser'
 
-USER_URL_PATH_NAME = '/api/users/me/'
+USER_URL_PATH_NAME = 'me'
 DOWNLOAD_URL_PATH_NAME = 'download_shopping_cart'
+SHOPPING_CART_URL_PATH_NAME = 'shopping_cart'
+FAVORITE_URL_PATH_NAME = 'favorite'
+SUBSCRIBE_URL_PATH_NAME = 'subscribe'
+GET_SUBSCRIPTIONS_URL_PATH_NAME = 'subscriptions'
