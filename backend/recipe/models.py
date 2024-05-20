@@ -1,10 +1,8 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-from recipe.validators import (
-    validate_amount, validate_hex_color, validate_username
-)
+from recipe.validators import validate_username
 
 USER_CHARFIELD_MAX_LENGTH = 150
 EMAIL_MAX_LENGTH = 254
@@ -26,6 +24,9 @@ class FoodgramUser(AbstractUser):
         validators=[validate_username]
     )
     password = models.CharField('Пароль', max_length=USER_CHARFIELD_MAX_LENGTH)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ['username']
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -62,11 +63,11 @@ class Follow(models.Model):
         return f'{self.user.last_name[:30]} {self.user.first_name[:30]}'
 
 
-class Product(models.Model):
+class Ingredient(models.Model):
 
     name = models.CharField('Название', max_length=CHARFIELD_MAX_LENGTH)
     measurement_unit = models.CharField(
-        'Еденица имзмерения', max_length=CHARFIELD_MAX_LENGTH
+        'Единица измерения', max_length=CHARFIELD_MAX_LENGTH
     )
 
     class Meta:
@@ -80,9 +81,16 @@ class Product(models.Model):
 
 class Tag(models.Model):
 
-    name = models.CharField('Название', max_length=CHARFIELD_MAX_LENGTH)
+    name = models.CharField(
+        'Название', max_length=CHARFIELD_MAX_LENGTH, unique=True
+    )
     color = models.CharField(
-        'Цвет', max_length=COLOR_MAX_LENGTH, validators=[validate_hex_color]
+        'Код цвета', max_length=COLOR_MAX_LENGTH, validators=[RegexValidator(
+            regex=r'^\#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$',
+            code='Указанный цвет не соответствует HEX кодировке.',
+            message='Введите цвет соответствующий HEX кодировке.'
+        )],
+        unique=True
     )
     slug = models.SlugField(
         'Метка', max_length=CHARFIELD_MAX_LENGTH, unique=True
@@ -112,8 +120,7 @@ class Recipe(models.Model):
     text = models.TextField('Описание')
     tags = models.ManyToManyField(
         Tag,
-        related_name='tag',
-        verbose_name='Тэг'
+        verbose_name='Тэги'
     )
     cooking_time = models.IntegerField(
         'Время приготовления', validators=[MinValueValidator(1)]
@@ -127,30 +134,38 @@ class Recipe(models.Model):
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
         default_related_name = 'recipes'
-        ordering = ('pub_date',)
+        ordering = ('-pub_date',)
 
     def __str__(self):
         return f'{self.name[:30]}'
 
 
-class FavoriteShoppingCartBase(models.Model):
+class RecipeSubscribeBase(models.Model):
 
     user = models.ForeignKey(
-        FoodgramUser, on_delete=models.CASCADE, verbose_name='Пользователь'
+        FoodgramUser, on_delete=models.CASCADE, verbose_name='Пользователь',
+        related_name='%(app_label)s_%(class)s_user'
     )
     recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт',
+        related_name='%(app_label)s_%(class)s_recipe'
     )
 
     class Meta:
         abstract = True
         ordering = ('user', 'recipe')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.user.last_name[:30]} {self.user.first_name[:30]}'
 
 
-class Favorite(FavoriteShoppingCartBase):
+class Favorite(RecipeSubscribeBase):
 
     class Meta:
         verbose_name = 'Избранное'
@@ -158,16 +173,19 @@ class Favorite(FavoriteShoppingCartBase):
         default_related_name = 'favorites'
 
 
-class Ingredient(models.Model):
+class Product(models.Model):
 
-    amount = models.FloatField('Количество', validators=[validate_amount])
+    amount = models.FloatField(
+        'Количество',
+        validators=[MinValueValidator(0.001)]
+    )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
         verbose_name='Рецепт'
     )
     product = models.ForeignKey(
-        Product,
+        Ingredient,
         on_delete=models.CASCADE,
         verbose_name='Продукт'
     )
@@ -182,7 +200,7 @@ class Ingredient(models.Model):
         return f'{self.product.name[:30]} {self.recipe.name[:30]}'
 
 
-class ShoppingCart(FavoriteShoppingCartBase):
+class ShoppingCart(RecipeSubscribeBase):
 
     class Meta:
         verbose_name = 'Рецепт для покупок'

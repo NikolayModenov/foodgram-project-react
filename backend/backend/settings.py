@@ -136,7 +136,6 @@ DJOSER = {
     'HIDE_USERS': False,
     "LOGIN_FIELD": "email",
     'SERIALIZERS': {
-        'user_create': 'api.serializers.CreateUserSerializer',
         'user': 'api.serializers.FoodgramUserSerializer',
         'current_user': 'api.serializers.FoodgramUserSerializer',
     },
@@ -147,6 +146,8 @@ DJOSER = {
 }
 
 AUTH_USER_MODEL = 'recipe.FoodgramUser'
+
+# FIXTURE_DIRS = ['d']
 
 USER_URL_PATH_NAME = 'me'
 DOWNLOAD_URL_PATH_NAME = 'download_shopping_cart'

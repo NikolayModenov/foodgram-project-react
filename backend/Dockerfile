@@ -10,4 +10,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "backend.wsgi"]
+RUN python manage.py collectstatic
+
+CMD ["gunicorn", "--bind", "0.0.0.0:9009", "backend.wsgi"]

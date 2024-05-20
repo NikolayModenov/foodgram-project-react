@@ -1,0 +1,54 @@
+version: '3'
+
+volumes:
+  pg_data:
+  static:
+  media:
+
+services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+  backend:
+    build: ./backend/
+    image: nikmodenov/foodgram_backend
+    env_file: .env
+    volumes:
+      - static:/backend_static
+      - media:/media
+    networks:
+      - default
+    depends_on:
+        - db
+    
+  frontend:
+    env_file: .env
+    build: ./frontend
+    image: nikmodenov/foodgram_frontend
+    command: cp -r /app/build/. /static
+    volumes:
+      - static:/static
+    networks:
+      - default
+  gateway:
+    build: ./nginx/
+    image: nikmodenov/foodgram_gateway
+    env_file: .env
+    ports:
+      - 9009:80
+    volumes:
+      - static:/static
+      - media:/media
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge

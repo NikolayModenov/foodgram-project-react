@@ -1,7 +1,7 @@
 from django_filters import BooleanFilter, CharFilter, ModelMultipleChoiceFilter
 from django_filters.rest_framework import FilterSet
 
-from recipe.models import Product, Tag, Recipe
+from recipe.models import Ingredient, Tag, Recipe
 
 
 class ProductFilter(FilterSet):
@@ -10,7 +10,7 @@ class ProductFilter(FilterSet):
     name = CharFilter(lookup_expr='istartswith')
 
     class Meta:
-        model = Product
+        model = Ingredient
         fields = ['name']
 
 

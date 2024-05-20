@@ -1,7 +1,6 @@
-from django.db.models import Sum, CharField
-from django.db.models.aggregates import Aggregate
+from django.db.models import Sum, F
 from django.http import FileResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from djoser.views import UserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
@@ -15,7 +14,7 @@ from api.permissions import AuthorOrReadOnly
 from api.report_generator import format_shopping_cart_report
 from api.serializers import (
     FollowSerializer, ProductSerializer, RecipeSerializer, TagSerializer,
-    InfoRecipeSerializer, FollowingSerialiser
+    InfoRecipeSerializer, FollowingSerializer
 )
 from backend.settings import (
     DOWNLOAD_URL_PATH_NAME, SHOPPING_CART_URL_PATH_NAME,
@@ -23,8 +22,8 @@ from backend.settings import (
     GET_SUBSCRIPTIONS_URL_PATH_NAME
 )
 from recipe.models import (
-    FoodgramUser, Product, Recipe, ShoppingCart, Tag, Favorite, Follow,
-    Ingredient
+    FoodgramUser, Ingredient, Recipe, ShoppingCart, Tag, Favorite, Follow,
+    Product
 )
 
 
@@ -39,22 +38,7 @@ FAVORITE_ERROR_MESSAGE = {
 SUBSCRIPTION_ERROR_MESSAGE = {
     'auth': 'Вы не можете подписаться на самого себя.',
     'post': 'Вы уже подписаны на автора {last_name} {first_name}.',
-    'delete': 'Вы не подписаны на автора {last_name} {first_name}.'
 }
-
-
-class GroupConcat(Aggregate):
-    function = 'GROUP_CONCAT'
-    template = '%(function)s(%(distinct)s%(expressions)s, ", ")'
-
-    temaple = f'{function}'
-
-    def __init__(self, expression, distinct=False, **extra):
-        super(GroupConcat, self).__init__(
-            expression,
-            distinct='DISTINCT ' if distinct else '',
-            output_field=CharField(),
-            **extra)
 
 
 class FoodgramUserViewSet(UserViewSet):
@@ -96,30 +80,21 @@ class FoodgramUserViewSet(UserViewSet):
             )
         author = get_object_or_404(FoodgramUser, pk=kwargs['id'])
         if self.request.method == 'POST':
-            if Follow.objects.filter(
+            follower, created = Follow.objects.get_or_create(
                 author=author, user=request.user
-            ).exists():
+            )
+            if created is False:
                 raise ValidationError(
                     SUBSCRIPTION_ERROR_MESSAGE['post'].format(
                         last_name=author.last_name,
                         first_name=author.first_name
                     )
                 )
-            Follow.objects.create(author=author, user=request.user)
             return Response(
-                FollowingSerialiser(author, context={'request': request}).data,
+                FollowingSerializer(author, context={'request': request}).data,
                 status=status.HTTP_201_CREATED
             )
-        if not Follow.objects.filter(
-            author=author, user=request.user
-        ).exists():
-            raise ValidationError(
-                SUBSCRIPTION_ERROR_MESSAGE['delete'].format(
-                    last_name=author.last_name,
-                    first_name=author.first_name
-                )
-            )
-        Follow.objects.filter(author=author, user=request.user).delete()
+        get_object_or_404(Follow, author=author, user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -135,7 +110,7 @@ class TagViewSet(ReadOnlyModelViewSet):
 class ProductViewSet(ReadOnlyModelViewSet):
     '''Viewset for products.'''
 
-    queryset = Product.objects.all()
+    queryset = Ingredient.objects.all()
     serializer_class = ProductSerializer
     filterset_class = ProductFilter
     pagination_class = None
@@ -153,14 +128,15 @@ class RecipeViewSet(ModelViewSet):
 
         ingredients_data = serializer.validated_data.pop('ingredients')
         if recipe:
-            Ingredient.objects.filter(recipe_id=recipe.pk).delete()
-        serializer.save(
+            Product.objects.filter(recipe_id=recipe.pk).delete()
+        recipe = serializer.save(
             author=self.request.user, **serializer.validated_data
         )
         for ingredient_data in ingredients_data:
             amount = ingredient_data['amount']
             product = ingredient_data['product']
-            Ingredient.objects.create(
+            print(f'product = {product}')
+            Product.objects.create(
                 recipe=recipe, amount=amount, product=product
             )
 
@@ -178,39 +154,34 @@ class RecipeViewSet(ModelViewSet):
     def get_shopping_cart(self, request):
         '''Download the list of ingredients to buy.'''
 
-        shopping_cart = get_object_or_404(
-            FoodgramUser, pk=request.user.pk
-        ).shopping_carts.values(
-            'recipe__ingredients__product__measurement_unit',
-            'recipe__ingredients__product__name',
-            'recipe__ingredients__product_id'
-        ).annotate(
-            amount=Sum('recipe__ingredients__amount'),
-            recipes=GroupConcat('recipe__name', distinct=False)
-        )
+        if not ShoppingCart.objects.filter(user=request.user.pk).exists():
+            return redirect('recipes-list')
+        shopping_cart = FoodgramUser.objects.get(
+            pk=request.user.pk
+        ).recipe_shoppingcart_user.values(
+            'recipe__ingredients__product_id',
+            unit=F('recipe__ingredients__product__measurement_unit'),
+            name=F('recipe__ingredients__product__name'),
+        ).annotate(amount=Sum('recipe__ingredients__amount'),)
         return FileResponse(format_shopping_cart_report(shopping_cart))
 
     def change_recipe_related_entries(self, pk, table, err_message):
         recipe = get_object_or_404(Recipe, pk=pk)
         if self.request.method == 'POST':
-            if table.objects.filter(
+            obj, created = table.objects.get_or_create(
                 recipe=recipe, user=self.request.user
-            ).exists():
+            )
+            if created is False:
                 raise ValidationError(
                     err_message['post'].format(name=recipe.name)
                 )
-            table.objects.create(recipe=recipe, user=self.request.user)
             return Response(
                 InfoRecipeSerializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
-        if not table.objects.filter(
-            recipe=recipe, user=self.request.user
-        ).exists():
-            raise ValidationError(
-                err_message['delete'].format(name=recipe.name)
-            )
-        table.objects.filter(recipe=recipe, user=self.request.user).delete()
+        get_object_or_404(
+            table, recipe=recipe, user=self.request.user
+        ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(

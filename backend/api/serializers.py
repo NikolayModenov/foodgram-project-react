@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from djoser.serializers import UserCreateSerializer
+from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.serializers import (
     SerializerMethodField, ModelSerializer, PrimaryKeyRelatedField,
@@ -7,7 +7,7 @@ from rest_framework.serializers import (
 )
 
 from recipe.models import (
-    Favorite, Follow, FoodgramUser, Ingredient, Product, Recipe, ShoppingCart,
+    Favorite, Follow, FoodgramUser, Product, Ingredient, Recipe, ShoppingCart,
     Tag
 )
 
@@ -22,25 +22,16 @@ def get_availability_object(model, kwargs):
     return model.objects.filter(**kwargs).exists()
 
 
-class CreateUserSerializer(UserCreateSerializer):
-    '''
-    A serializer for displaying users when called from another serializer.
-    '''
-
-    class Meta:
-        model = FoodgramUser
-        fields = (
-            'email', 'username', 'first_name', 'last_name', 'password', 'id'
-        )
-
-
-class FoodgramUserSerializer(CreateUserSerializer):
+class FoodgramUserSerializer(UserSerializer):
     '''A serializer for users.'''
 
     is_subscribed = SerializerMethodField(read_only=True)
 
-    class Meta(CreateUserSerializer.Meta):
-        fields = CreateUserSerializer.Meta.fields + ('is_subscribed',)
+    class Meta(UserSerializer.Meta):
+        fields = (
+            *UserSerializer.Meta.fields, 'first_name', 'last_name',
+            'is_subscribed',
+        )
 
     def get_is_subscribed(self, author):
         return get_availability_object(model=Follow, kwargs={
@@ -60,7 +51,7 @@ class ProductSerializer(ModelSerializer):
     '''Serializer for products.'''
 
     class Meta:
-        model = Product
+        model = Ingredient
         fields = '__all__'
 
 
@@ -70,10 +61,10 @@ class IngredientSerializer(ModelSerializer):
     when called from another serializer.
     '''
 
-    product = PrimaryKeyRelatedField(queryset=Product.objects.all())
+    product = PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
-        model = Ingredient
+        model = Product
         fields = 'product', 'amount'
 
     def to_internal_value(self, data):
@@ -82,11 +73,11 @@ class IngredientSerializer(ModelSerializer):
 
     def to_representation(self, instance):
         result = super().to_representation(instance)
-        prods = get_object_or_404(Product, pk=result.pop('product'))
-        result['id'] = prods.pk
-        result['name'] = prods.name
-        result['measurement_unit'] = prods.measurement_unit
-        return result
+        del result['product']
+        return {
+            **result,
+            **ProductSerializer().to_representation(instance.product)
+        }
 
 
 class RecipeSerializer(ModelSerializer):
@@ -108,13 +99,10 @@ class RecipeSerializer(ModelSerializer):
         tags_id = result.pop('tags')
         tags = list()
         for tag_id in tags_id:
-            res_tag = dict()
-            tag = get_object_or_404(Tag, pk=tag_id)
-            res_tag['id'] = tag.pk
-            res_tag['name'] = tag.name
-            res_tag['color'] = tag.color
-            res_tag['slug'] = tag.slug
-            tags.append(res_tag)
+            tag = TagSerializer().to_representation(
+                get_object_or_404(Tag, pk=tag_id)
+            )
+            tags.append(tag)
         result['tags'] = tags
         return result
 
@@ -149,7 +137,7 @@ class InfoRecipeSerializer(ModelSerializer):
         fields = 'id', 'image', 'cooking_time', 'name'
 
 
-class FollowingSerialiser(FoodgramUserSerializer):
+class FollowingSerializer(FoodgramUserSerializer):
     '''
     A serializer for displaying users when called from another serializer.
     '''
@@ -159,15 +147,15 @@ class FollowingSerialiser(FoodgramUserSerializer):
 
     class Meta:
         model = FoodgramUser
-        fields = FoodgramUserSerializer.Meta.fields + (
-            'recipes', 'recipes_count'
+        fields = (
+            *FoodgramUserSerializer.Meta.fields, 'recipes', 'recipes_count',
         )
 
 
 class FollowSerializer(ModelSerializer):
     '''Serializer for follower.'''
 
-    author = FollowingSerialiser(read_only=True)
+    author = FollowingSerializer(read_only=True)
 
     class Meta:
         model = Follow
