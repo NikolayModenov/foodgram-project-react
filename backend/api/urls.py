@@ -14,11 +14,11 @@ router.register('ingredients', ProductViewSet, basename='ingredients')
 router.register('users', FoodgramUserViewSet, basename='users')
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('auth/', include('djoser.urls.authtoken')),
     path(
         'docs/',
         TemplateView.as_view(template_name='redoc.html'),
         name='redoc'
     ),
+    path('auth/', include('djoser.urls.authtoken')),
+    path('', include(router.urls)),
 ]
