@@ -17,7 +17,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('auth/', include('djoser.urls.authtoken')),
     path(
-        'redoc/',
+        'docs/',
         TemplateView.as_view(template_name='redoc.html'),
         name='redoc'
     ),
