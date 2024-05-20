@@ -66,7 +66,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
                 )
                 continue
 
-            lower_threshold = chart_data[i-1]["time_slice"]
+            lower_threshold = chart_data[i - 1]["time_slice"]
 
             if upper_threshold == 'inf':
                 filter_messages[upper_threshold] = (
