@@ -83,7 +83,7 @@ class FoodgramUserViewSet(UserViewSet):
             follower, created = Follow.objects.get_or_create(
                 author=author, user=request.user
             )
-            if created is False:
+            if not created:
                 raise ValidationError(
                     SUBSCRIPTION_ERROR_MESSAGE['post'].format(
                         last_name=author.last_name,
@@ -132,13 +132,13 @@ class RecipeViewSet(ModelViewSet):
         recipe = serializer.save(
             author=self.request.user, **serializer.validated_data
         )
-        for ingredient_data in ingredients_data:
-            amount = ingredient_data['amount']
-            product = ingredient_data['product']
-            print(f'product = {product}')
-            Product.objects.create(
-                recipe=recipe, amount=amount, product=product
+        Product.objects.bulk_create(
+            Product(
+                recipe=recipe, amount=ingredient_data['amount'],
+                product=ingredient_data['product']
             )
+            for ingredient_data in ingredients_data
+        )
 
     def perform_create(self, serializer):
         self.make_ingredients(serializer=serializer)
@@ -171,7 +171,7 @@ class RecipeViewSet(ModelViewSet):
             obj, created = table.objects.get_or_create(
                 recipe=recipe, user=self.request.user
             )
-            if created is False:
+            if not created:
                 raise ValidationError(
                     err_message['post'].format(name=recipe.name)
                 )

@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
@@ -48,42 +51,53 @@ class CookingTimeFilter(admin.SimpleListFilter):
             default=Value('inf'),
             output_field=CharField(),
         ))
+    
+    @staticmethod
+    def get_bin(time):
+        for el in BOUNDARY_VALUES:
+            if el >= time:
+                return str(el)
+        return 'inf'
+
+    @staticmethod
+    def format_time_message(left, rigth, count):
+        if left == '0':
+            return f'Быстрее {rigth} минут ({count})'
+        if rigth == 'inf':
+            return f'Дольше {left} минут ({count})'
+        return f'От {left} минут до {rigth} минут ({count})'
 
     def lookups(self, request, model_admin):
-
-        chart_data = self.calculate_chart_data().values("time_slice").annotate(
-            count=Count("id")
-        ).order_by("time_slice")
+        chart_data = defaultdict(int)
+        for recipe in Recipe.objects.all():
+            bin = self.get_bin(recipe.cooking_time)
+            chart_data[bin] += 1
 
         filter_messages = dict()
-        for i in range(len(chart_data)):
-            upper_threshold = chart_data[i]["time_slice"]
-            count = chart_data[i]["count"]
-
-            if i == 0:
-                filter_messages[upper_threshold] = (
-                    f'Быстрее {upper_threshold} минут ({count})'
-                )
-                continue
-
-            lower_threshold = chart_data[i - 1]["time_slice"]
-
-            if upper_threshold == 'inf':
-                filter_messages[upper_threshold] = (
-                    f'Дольше {lower_threshold} минут ({count})'
-                )
-                continue
-
-            filter_messages[upper_threshold] = (
-                f'От {lower_threshold} минут до {upper_threshold} минут '
-                f'({count})'
+        left_time = '0'
+        values = sorted([str(value) for value in BOUNDARY_VALUES])
+        values.append('inf')
+        for right_time in values:
+            filter_messages[right_time] = self.format_time_message(
+                left_time, right_time, chart_data[right_time]
             )
+            left_time = right_time
+
         return list(filter_messages.items())
 
     def queryset(self, request, queryset):
         if self.value():
-            return self.calculate_chart_data(queryset).filter(
-                time_slice=self.value()
+            if self.value() == 'inf':
+                return queryset.filter(cooking_time__gt=BOUNDARY_VALUES[-1])
+            if int(self.value()) == BOUNDARY_VALUES[0]:
+                return queryset.filter(cooking_time__lte=int(self.value()))
+
+            left_time = BOUNDARY_VALUES[
+                BOUNDARY_VALUES.index(int(self.value())) - 1
+            ]
+            return queryset.filter(
+                cooking_time__gt=left_time,
+                cooking_time__lte=int(self.value())
             )
         return queryset
 
@@ -103,7 +117,7 @@ class FoodgramUserAdmin(UserAdmin):
 
     @admin.display(description='Подписчиков')
     def favorite_recipes_count(self, user):
-        return user.recipe_favorite_user.count()
+        return user.favorites.count()
 
     @admin.display(description='Подписок')
     def followers_count(self, user):
@@ -157,17 +171,17 @@ class RecipeAdmin(admin.ModelAdmin):
     @mark_safe
     @admin.display(description='Ингредиенты')
     def preview_ingredients(self, recipe):
-        return ''.join([
-            f'<p>{ingredient.product.name[:10]} {ingredient.amount} '
-            f'{ingredient.product.measurement_unit}</p>'
+        return '<br>'.join(
+            f'{ingredient.product.name[:20]} {ingredient.amount} '
+            f'{ingredient.product.measurement_unit}'
             for ingredient
             in recipe.ingredients.all()
-        ])
+        )
 
     @mark_safe
     @admin.display(description='Тэги')
     def preview_tags(self, recipe):
-        return ''.join([f'<p>{tag.name}</p>' for tag in recipe.tags.all()])
+        return '<br>'.join(f'{tag.name}' for tag in recipe.tags.all())
 
 
 @admin.register(Favorite)

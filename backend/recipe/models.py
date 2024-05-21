@@ -86,7 +86,7 @@ class Tag(models.Model):
     )
     color = models.CharField(
         'Код цвета', max_length=COLOR_MAX_LENGTH, validators=[RegexValidator(
-            regex=r'^\#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$',
+            regex=r'^\#([a-fA-F0-9]{6})$',
             code='Указанный цвет не соответствует HEX кодировке.',
             message='Введите цвет соответствующий HEX кодировке.'
         )],
@@ -144,20 +144,19 @@ class RecipeSubscribeBase(models.Model):
 
     user = models.ForeignKey(
         FoodgramUser, on_delete=models.CASCADE, verbose_name='Пользователь',
-        related_name='%(app_label)s_%(class)s_user'
     )
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, verbose_name='Рецепт',
-        related_name='%(app_label)s_%(class)s_recipe'
     )
 
     class Meta:
         abstract = True
         ordering = ('user', 'recipe')
+        default_related_name = '%(class)ss'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'],
-                name='unique_recipe'
+                name='unique_%(class)s_recipe'
             )
         ]
 
@@ -167,17 +166,16 @@ class RecipeSubscribeBase(models.Model):
 
 class Favorite(RecipeSubscribeBase):
 
-    class Meta:
+    class Meta(RecipeSubscribeBase.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-        default_related_name = 'favorites'
 
 
 class Product(models.Model):
 
-    amount = models.FloatField(
+    amount = models.IntegerField(
         'Количество',
-        validators=[MinValueValidator(0.001)]
+        validators=[MinValueValidator(1)]
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -202,7 +200,6 @@ class Product(models.Model):
 
 class ShoppingCart(RecipeSubscribeBase):
 
-    class Meta:
+    class Meta(RecipeSubscribeBase.Meta):
         verbose_name = 'Рецепт для покупок'
         verbose_name_plural = 'Рецепты для покупок'
-        default_related_name = 'shopping_carts'

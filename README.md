@@ -22,9 +22,14 @@
 
 ### Запуск проекта на новом сервере
 
-1. Форкните проект [foodgram-project-react](https://github.com/NikolayModenov/foodgram-project-react/) на свой аккаунт Git Hub и склонируйте на свой локальный компьютер.
+1. Форкните проект [foodgram-project-react](https://github.com/NikolayModenov/foodgram-project-react/) на свой аккаунт Git Hub и склонируйте на свой локальный компьютер. 
+
+-```git clone git@github.com:<ваше_имя_пользователя_на_GitHub>/foodgram-project-react.git```
 
 2. Создайте виртуальное окружение и подключитель к нему.
+
+- ```python -m venv venv``` - создание окружения
+- ```source venv/Scripts/activate``` - подключение к созданному окружению
 
 3. Получите и сохраните новый Secret key, для этого перейдите в директорию с файлом manage.py и поочерёдно введите команды:
 
@@ -34,22 +39,10 @@
 
 4. Подключитесь к удалённому серверу.
 
-5. Поочерёдно выполните комманды для установки docker на ваш сервер:
+5. Установите docker на ваш сервер.
 
-- ```sudo apt update```
-- ```sudo apt install curl```
-- ```curl -fSL https://get.docker.com -o get-docker.sh```
-- ```sudo sh ./get-docker.sh```
-- ```sudo apt install docker-compose-plugin```
+6. Установите внешний Nginx на ваш сервер и внесите следующие изменения:
 
-6. Поочерёдно выполните комманды для установки и настройки внешнего Nginx на ваш сервер:
-
-- ```sudo apt install nginx -y``` - Далее сервер, скорее всего, попросит вас перезагрузить операционную систему — сделайте это.
-- ```sudo systemctl start nginx``` - Для проверки корректности установленной программы исполните указанную комманду и введите в адресную строку браузера IP-адрес вашего удалённого сервера без указания порта. Должна открыться страница приветствия от Nginx.
-- ```sudo ufw allow 'Nginx Full'```
-- ```sudo ufw allow OpenSSH```
-- ```sudo ufw enable``` - В терминале выведется запрос на подтверждение операции с предупреждением, что команда может оборвать SSH-соединение, подтвердите операцию.
-- ```sudo ufw status``` - Проверьте внесённые изменения, файрвол ufw сообщит вам, что он «активен» и разрешает принимать запросы на порты, которые вы указали.
 - ```sudo nano /etc/nginx/sites-enabled/default ``` - Удалите все настройки из файла, запишите и сохраните новые:
 
     server {
@@ -98,6 +91,37 @@
 
 12. Запушьте в локальный проект на Git Hub.
 
+### Локальный запуск проекта
+
+1. Форкните проект [foodgram-project-react](https://github.com/NikolayModenov/foodgram-project-react/) на свой аккаунт Git Hub и склонируйте на свой локальный компьютер. 
+
+-```git clone git@github.com:<ваше_имя_пользователя_на_GitHub>/foodgram-project-react.git```
+
+2. Создайте виртуальное окружение и подключитель к нему.
+
+- ```python -m venv venv``` - создание окружения
+- ```source venv/Scripts/activate``` - подключение к созданному окружению
+
+3. Получите и сохраните новый Secret key, для этого перейдите в директорию с файлом manage.py и поочерёдно введите команды:
+
+- ```python manage.py shell```
+- ```from django.core.management.utils import get_random_secret_key```
+- ```get_random_secret_key()```
+
+4. Создайте в корневой директории проекта файл .env и внесите в него переменные:
+
+- SECRET_KEY = (полученный ранее Secret key)
+- ALLOWED_HOSTS = (ip адресс вашего сервера), 127.0.0.1, localhost, food-gram.ru
+- POSTGRES_USER = (имя пользователя базы данных postgres)
+- POSTGRES_PASSWORD = (пароль базы данных postgres)
+- POSTGRES_DB = (название базы данных postgres)
+- DB_HOST = (название хоста)
+- DB_PORT = (порт сервера для подключения базы данных postgres)
+
+5. Разверните проект при помощи команды:
+
+- docker compose up
+
 ### Команды для наполнения баы данных на сервере
 
 на удалённом сервере перейдите в папку с файлом docker-compose.yml и введите следующие комманды
@@ -108,13 +132,8 @@
 
 ## Список приложений используемых для разработки проекта
 
-- Python 3.9.13
-- Django 3.2.3
-- djangorestframework 3.12.4
-- djoser 2.1.0
-- PyJWT 2.1.0
-- pytest 6.2.4
-- pytest-django 4.4.0
-- gunicorn 20.1.0
-- Node.js 18 
-- nginx 1.22.1
+Бэкенд проекта реализован на базе django rest framework, фронтенд на базе Node.js.
+Аутентификация осуществляется при помощи djoser.
+Для автоматизации развёртывания применяется docker.
+Взаимосвязь контёнеров docker осуществляется при помощи прокси сервера nginx.
+Wsgi server - gunicorn, осуществляет взаимодействие nginx и django rest framework.

@@ -12,7 +12,7 @@ from recipe.models import (
 )
 
 
-def get_availability_object(model, kwargs):
+def get_availability_object(model, **kwargs):
     '''
     Returns bool, there is an entry with the specified parameters in the model
     or not.
@@ -28,15 +28,12 @@ class FoodgramUserSerializer(UserSerializer):
     is_subscribed = SerializerMethodField(read_only=True)
 
     class Meta(UserSerializer.Meta):
-        fields = (
-            *UserSerializer.Meta.fields, 'first_name', 'last_name',
-            'is_subscribed',
-        )
+        fields = (*UserSerializer.Meta.fields, 'is_subscribed',)
 
     def get_is_subscribed(self, author):
-        return get_availability_object(model=Follow, kwargs={
-            'user': self.context['request'].user, 'author': author
-        })
+        return get_availability_object(
+            model=Follow, user=self.context['request'].user, author=author
+        )
 
 
 class TagSerializer(ModelSerializer):
@@ -97,13 +94,11 @@ class RecipeSerializer(ModelSerializer):
     def to_representation(self, instance):
         result = super().to_representation(instance)
         tags_id = result.pop('tags')
-        tags = list()
-        for tag_id in tags_id:
-            tag = TagSerializer().to_representation(
+        result['tags'] = [
+            TagSerializer().to_representation(
                 get_object_or_404(Tag, pk=tag_id)
-            )
-            tags.append(tag)
-        result['tags'] = tags
+            ) for tag_id in tags_id
+        ]
         return result
 
     def get_is_favorited(self, obj):
@@ -111,18 +106,18 @@ class RecipeSerializer(ModelSerializer):
         Return the bool value the user is subscribed to the recipe
         or not.
         '''
-        return get_availability_object(model=Favorite, kwargs={
-            'user': self.context['request'].user, 'recipe': obj
-        })
+        return get_availability_object(
+            model=Favorite, user=self.context['request'].user, recipe=obj
+        )
 
     def get_is_in_shopping_cart(self, obj):
         '''
         Return the bool value there is a recipe in the shopping list
         or not.
         '''
-        return get_availability_object(model=ShoppingCart, kwargs={
-            'user': self.context['request'].user, 'recipe': obj
-        })
+        return get_availability_object(
+            model=ShoppingCart, user=self.context['request'].user, recipe=obj
+        )
 
 
 class InfoRecipeSerializer(ModelSerializer):
