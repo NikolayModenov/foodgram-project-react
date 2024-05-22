@@ -26,7 +26,7 @@ class FoodgramUser(AbstractUser):
     password = models.CharField('Пароль', max_length=USER_CHARFIELD_MAX_LENGTH)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -71,8 +71,8 @@ class Ingredient(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = 'Продукты'
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
         ordering = ('name', 'measurement_unit')
 
     def __str__(self):
@@ -182,24 +182,24 @@ class Product(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Рецепт'
     )
-    product = models.ForeignKey(
+    ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
-        verbose_name='Продукт'
+        verbose_name='Ингредиент'
     )
 
     class Meta:
-        verbose_name = 'Ингредиент'
-        verbose_name_plural = 'Игредиенты'
-        default_related_name = 'ingredients'
-        ordering = ('recipe', 'product')
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты'
+        default_related_name = 'products'
+        ordering = ('recipe', 'ingredient')
 
     def __str__(self):
-        return f'{self.product.name[:30]} {self.recipe.name[:30]}'
+        return f'{self.ingredient.name[:30]} {self.recipe.name[:30]}'
 
 
 class ShoppingCart(RecipeSubscribeBase):
 
     class Meta(RecipeSubscribeBase.Meta):
-        verbose_name = 'Рецепт для покупок'
-        verbose_name_plural = 'Рецепты для покупок'
+        verbose_name = 'Корзина покупок'
+        verbose_name_plural = 'Корзина покупок'

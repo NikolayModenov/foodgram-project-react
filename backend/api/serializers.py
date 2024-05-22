@@ -12,14 +12,15 @@ from recipe.models import (
 )
 
 
-def get_availability_object(model, **kwargs):
+def get_object_availability(model, **kwargs):
     '''
     Returns bool, there is an entry with the specified parameters in the model
     or not.
     '''
-    if not kwargs['user'].is_authenticated:
-        return False
-    return model.objects.filter(**kwargs).exists()
+    return (
+        kwargs['user'].is_authenticated
+        and model.objects.filter(**kwargs).exists()
+    )
 
 
 class FoodgramUserSerializer(UserSerializer):
@@ -31,7 +32,7 @@ class FoodgramUserSerializer(UserSerializer):
         fields = (*UserSerializer.Meta.fields, 'is_subscribed',)
 
     def get_is_subscribed(self, author):
-        return get_availability_object(
+        return get_object_availability(
             model=Follow, user=self.context['request'].user, author=author
         )
 
@@ -58,22 +59,22 @@ class IngredientSerializer(ModelSerializer):
     when called from another serializer.
     '''
 
-    product = PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    ingredient = PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
         model = Product
-        fields = 'product', 'amount'
+        fields = 'ingredient', 'amount'
 
     def to_internal_value(self, data):
-        data['product'] = data.pop('id')
+        data['ingredient'] = data.pop('id')
         return super().to_internal_value(data)
 
     def to_representation(self, instance):
         result = super().to_representation(instance)
-        del result['product']
+        del result['ingredient']
         return {
             **result,
-            **ProductSerializer().to_representation(instance.product)
+            **ProductSerializer().to_representation(instance.ingredient)
         }
 
 
@@ -83,7 +84,7 @@ class RecipeSerializer(ModelSerializer):
     author = FoodgramUserSerializer(read_only=True)
     image = Base64ImageField()
     tags = PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    ingredients = IngredientSerializer(many=True)
+    ingredients = IngredientSerializer(many=True, source='products')
     is_favorited = SerializerMethodField(read_only=True)
     is_in_shopping_cart = SerializerMethodField(read_only=True)
 
@@ -106,7 +107,7 @@ class RecipeSerializer(ModelSerializer):
         Return the bool value the user is subscribed to the recipe
         or not.
         '''
-        return get_availability_object(
+        return get_object_availability(
             model=Favorite, user=self.context['request'].user, recipe=obj
         )
 
@@ -115,7 +116,7 @@ class RecipeSerializer(ModelSerializer):
         Return the bool value there is a recipe in the shopping list
         or not.
         '''
-        return get_availability_object(
+        return get_object_availability(
             model=ShoppingCart, user=self.context['request'].user, recipe=obj
         )
 
@@ -124,8 +125,6 @@ class InfoRecipeSerializer(ModelSerializer):
     '''
     A serializer for displaying recipes when called from another serializer.
     '''
-
-    image = Base64ImageField()
 
     class Meta:
         model = Recipe

@@ -125,8 +125,9 @@ class RecipeViewSet(ModelViewSet):
     filterset_class = RecipeFilter
 
     def make_ingredients(self, serializer, recipe=None):
+        print(serializer.validated_data)
 
-        ingredients_data = serializer.validated_data.pop('ingredients')
+        ingredients_data = serializer.validated_data.pop('products')
         if recipe:
             Product.objects.filter(recipe_id=recipe.pk).delete()
         recipe = serializer.save(
@@ -135,7 +136,7 @@ class RecipeViewSet(ModelViewSet):
         Product.objects.bulk_create(
             Product(
                 recipe=recipe, amount=ingredient_data['amount'],
-                product=ingredient_data['product']
+                ingredient=ingredient_data['ingredient']
             )
             for ingredient_data in ingredients_data
         )

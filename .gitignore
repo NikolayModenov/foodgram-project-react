@@ -132,3 +132,7 @@ dmypy.json
 .idea
 
 media/
+add_ingredients.py
+base.sql
+base.json
+.vscode/

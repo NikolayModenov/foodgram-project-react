@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
@@ -166,6 +165,7 @@ class RecipeAdmin(admin.ModelAdmin):
     @mark_safe
     @admin.display(description='Изображение')
     def preview_image(self, recipe):
+        print(recipe.image)
         return f'<img src="{recipe.image}" width=50>'
 
     @mark_safe
@@ -191,7 +191,7 @@ class FavoriteAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('recipe', 'product', 'amount')
+    list_display = ('recipe', 'ingredient', 'amount')
 
 
 @admin.register(ShoppingCart)

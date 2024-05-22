@@ -142,7 +142,7 @@ DJOSER = {
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny'],
         'user': ['rest_framework.permissions.AllowAny'],
-    }
+    },
 }
 
 AUTH_USER_MODEL = 'recipe.FoodgramUser'
