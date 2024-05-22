@@ -2,7 +2,6 @@
 
 ![foodgram workflow](https://github.com/NikolayModenov/foodgram-project-react/actions/workflows/main.yml/badge.svg)
 
-
 ### Автор
 
 1. Николай Моденов  
