@@ -4,7 +4,7 @@ from collections import defaultdict
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
-from django.db.models import Count, Value, Case, When, CharField
+from django.db.models import Value, Case, When, CharField
 from django.utils.safestring import mark_safe
 
 from recipe.models import (
@@ -51,7 +51,7 @@ class CookingTimeFilter(admin.SimpleListFilter):
             default=Value('inf'),
             output_field=CharField(),
         ))
-    
+
     @staticmethod
     def get_bin(time):
         for el in BOUNDARY_VALUES:
