@@ -26,7 +26,6 @@ from recipe.models import (
     Product
 )
 
-
 SHOPPING_CART_ERROR_MESSAGE = {
     'post': 'Вы уже добавили рецепт {name} в список покупок.',
     'delete': 'У вас нет рецепта {name} в списке покупок.'
@@ -150,7 +149,8 @@ class RecipeViewSet(ModelViewSet):
     @action(
         methods=['GET'],
         detail=False,
-        url_path=DOWNLOAD_URL_PATH_NAME
+        url_path=DOWNLOAD_URL_PATH_NAME,
+        permission_classes=[IsAuthenticated, ]
     )
     def get_shopping_cart(self, request):
         '''Download the list of ingredients to buy.'''
@@ -159,11 +159,12 @@ class RecipeViewSet(ModelViewSet):
             return redirect('recipes-list')
         shopping_cart = FoodgramUser.objects.get(
             pk=request.user.pk
-        ).recipe_shoppingcart_user.values(
-            'recipe__ingredients__product_id',
-            unit=F('recipe__ingredients__product__measurement_unit'),
-            name=F('recipe__ingredients__product__name'),
-        ).annotate(amount=Sum('recipe__ingredients__amount'),)
+        ).shoppingcart.values(
+            'recipe__products__ingredient_id',
+            unit=F('recipe__products__ingredient__measurement_unit'),
+            name=F('recipe__products__ingredient__name'),
+        ).annotate(amount=Sum('recipe__products__amount'),)
+        print(f'shopping_cart = {shopping_cart}')
         return FileResponse(format_shopping_cart_report(shopping_cart))
 
     def change_recipe_related_entries(self, pk, table, err_message):

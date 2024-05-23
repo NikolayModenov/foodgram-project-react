@@ -1,3 +1,4 @@
+from django.forms.widgets import NullBooleanSelect
 from django_filters import BooleanFilter, CharFilter, ModelMultipleChoiceFilter
 from django_filters.rest_framework import FilterSet
 
@@ -14,6 +15,22 @@ class ProductFilter(FilterSet):
         fields = ['name']
 
 
+class BoolOrIntSelect(NullBooleanSelect):
+
+    def value_from_datadict(self, data, files, name):
+        value = data.get(name)
+        return {
+            True: True,
+            'True': True,
+            'False': False,
+            False: False,
+            'true': True,
+            'false': False,
+            '1': True,
+            '0': False,
+        }.get(value)
+
+
 class RecipeFilter(FilterSet):
     '''Filter for recipes.'''
 
@@ -21,9 +38,12 @@ class RecipeFilter(FilterSet):
         queryset=Tag.objects.all(),
         field_name='tags__slug',
         to_field_name='slug')
-    is_favorited = BooleanFilter(method='get_is_favorited')
+    is_favorited = BooleanFilter(
+        method='get_is_favorited', widget=BoolOrIntSelect
+    )
     is_in_shopping_cart = BooleanFilter(
-        method='get_is_in_shopping_cart')
+        method='get_is_in_shopping_cart', widget=BoolOrIntSelect
+    )
     author = CharFilter(field_name='author_id')
 
     class Meta:

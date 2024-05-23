@@ -7,7 +7,7 @@ from django.db.models import Value, Case, When, CharField
 from django.utils.safestring import mark_safe
 
 from recipe.models import (
-    FoodgramUser, Follow, Ingredient, Tag, Recipe, Favorite, Product,
+    FoodgramUser, Follow, Tag, Recipe, Favorite, Product,
     ShoppingCart
 )
 
@@ -34,8 +34,8 @@ class RecipesOrFollowersFilter(admin.SimpleListFilter):
 
 class CookingTimeFilter(admin.SimpleListFilter):
 
-    title = 'Время приготовления'
-    parameter_name = 'Время приготовления'
+    title = 'Время приготовления (мин.)'
+    parameter_name = 'Время приготовления (мин.)'
 
     @staticmethod
     def calculate_chart_data(queryset=Recipe.objects):
@@ -129,17 +129,6 @@ class FollowAdmin(admin.ModelAdmin):
     list_display = ('user', 'author')
 
 
-@admin.register(Ingredient)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'measurement_unit', 'recipes_count')
-    list_filter = ('measurement_unit',)
-    search_fields = ('name', 'measurement_unit')
-
-    @admin.display(description='Рецепты')
-    def recipes_count(self, product):
-        return Recipe.objects.filter(ingredients__product=product).count()
-
-
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'preview_color', 'color', 'slug')
@@ -153,6 +142,10 @@ class TagAdmin(admin.ModelAdmin):
         )
 
 
+class ProductAdmin(admin.TabularInline):
+    model = Product
+
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
@@ -161,21 +154,30 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     list_filter = ('tags', CookingTimeFilter)
     search_fields = ('name', 'tags__name')
+    fields = 'author', 'name', 'image', 'text', 'tags', 'cooking_time'
+    inlines = [ProductAdmin,]
+
+    def author_username(self, obj):
+        return obj.username
+
+    def get_form(self, request, obj, change, **kwargs):
+        form = super().get_form(request, obj, change, **kwargs)
+        form.base_fields["author"].label_from_instance = self.author_username
+        return form
 
     @mark_safe
     @admin.display(description='Изображение')
     def preview_image(self, recipe):
-        print(recipe.image)
-        return f'<img src="{recipe.image}" width=50>'
+        return f'<img src="{recipe.image.url}" width=50>'
 
     @mark_safe
     @admin.display(description='Ингредиенты')
     def preview_ingredients(self, recipe):
         return '<br>'.join(
-            f'{ingredient.product.name[:20]} {ingredient.amount} '
-            f'{ingredient.product.measurement_unit}'
-            for ingredient
-            in recipe.ingredients.all()
+            f'{product.ingredient.name[:20]} {product.amount} '
+            f'{product.ingredient.measurement_unit}'
+            for product
+            in recipe.products.all()
         )
 
     @mark_safe

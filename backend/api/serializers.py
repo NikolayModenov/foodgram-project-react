@@ -83,8 +83,12 @@ class RecipeSerializer(ModelSerializer):
 
     author = FoodgramUserSerializer(read_only=True)
     image = Base64ImageField()
-    tags = PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all())
-    ingredients = IngredientSerializer(many=True, source='products')
+    tags = PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all(), allow_empty=False
+    )
+    ingredients = IngredientSerializer(
+        many=True, source='products', allow_empty=False
+    )
     is_favorited = SerializerMethodField(read_only=True)
     is_in_shopping_cart = SerializerMethodField(read_only=True)
 
