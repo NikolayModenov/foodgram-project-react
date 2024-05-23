@@ -208,7 +208,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name', 'measurement_unit')
 
     @admin.display(description='Рецепты')
-    def recipes_count(self, product):
-        return Recipe.objects.filter(ingredients__product=product).count()
+    def recipes_count(self, ingredient):
+        return Recipe.objects.filter(products__ingredient=ingredient).count() 
 
 admin.site.unregister(Group)
