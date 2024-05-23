@@ -152,7 +152,7 @@ class RecipeSubscribeBase(models.Model):
     class Meta:
         abstract = True
         ordering = ('user', 'recipe')
-        default_related_name = '%(class)s'
+        default_related_name = '%(class)ss'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'],

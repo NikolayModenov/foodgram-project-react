@@ -159,7 +159,7 @@ class RecipeViewSet(ModelViewSet):
             return redirect('recipes-list')
         shopping_cart = FoodgramUser.objects.get(
             pk=request.user.pk
-        ).shoppingcart.values(
+        ).shoppingcarts.values(
             'recipe__products__ingredient_id',
             unit=F('recipe__products__ingredient__measurement_unit'),
             name=F('recipe__products__ingredient__name'),
