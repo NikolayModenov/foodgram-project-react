@@ -166,7 +166,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('tags', CookingTimeFilter)
     search_fields = ('name', 'tags__name')
     fields = 'author', 'name', 'image', 'text', 'tags', 'cooking_time'
-    inlines = [ProductInLine,]
+    inlines = [ProductInLine, ]
 
     def author_username(self, obj):
         return obj.username
