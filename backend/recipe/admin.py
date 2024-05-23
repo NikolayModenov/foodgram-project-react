@@ -8,7 +8,7 @@ from django.utils.safestring import mark_safe
 
 from recipe.models import (
     FoodgramUser, Follow, Tag, Recipe, Favorite, Product,
-    ShoppingCart
+    ShoppingCart, Ingredient
 )
 
 BOUNDARY_VALUES = (15, 45)
@@ -142,7 +142,7 @@ class TagAdmin(admin.ModelAdmin):
         )
 
 
-class ProductAdmin(admin.TabularInline):
+class ProductInLine(admin.TabularInline):
     model = Product
 
 
@@ -155,7 +155,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('tags', CookingTimeFilter)
     search_fields = ('name', 'tags__name')
     fields = 'author', 'name', 'image', 'text', 'tags', 'cooking_time'
-    inlines = [ProductAdmin,]
+    inlines = [ProductInLine,]
 
     def author_username(self, obj):
         return obj.username
@@ -200,5 +200,15 @@ class IngredientAdmin(admin.ModelAdmin):
 class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = ('user', 'recipe')
 
+
+@admin.register(Ingredient)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'measurement_unit', 'recipes_count')
+    list_filter = ('measurement_unit',)
+    search_fields = ('name', 'measurement_unit')
+
+    @admin.display(description='Рецепты')
+    def recipes_count(self, product):
+        return Recipe.objects.filter(ingredients__product=product).count()
 
 admin.site.unregister(Group)
