@@ -142,6 +142,17 @@ class TagAdmin(admin.ModelAdmin):
         )
 
 
+@admin.register(Ingredient)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'measurement_unit', 'recipes_count')
+    list_filter = ('measurement_unit',)
+    search_fields = ('name', 'measurement_unit')
+
+    @admin.display(description='Рецепты')
+    def recipes_count(self, ingredient):
+        return Recipe.objects.filter(products__ingredient=ingredient).count()
+
+
 class ProductInLine(admin.TabularInline):
     model = Product
 
@@ -200,15 +211,5 @@ class IngredientAdmin(admin.ModelAdmin):
 class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = ('user', 'recipe')
 
-
-@admin.register(Ingredient)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'measurement_unit', 'recipes_count')
-    list_filter = ('measurement_unit',)
-    search_fields = ('name', 'measurement_unit')
-
-    @admin.display(description='Рецепты')
-    def recipes_count(self, ingredient):
-        return Recipe.objects.filter(products__ingredient=ingredient).count()
 
 admin.site.unregister(Group)
