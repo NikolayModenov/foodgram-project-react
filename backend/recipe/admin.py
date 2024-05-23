@@ -209,6 +209,6 @@ class ProductAdmin(admin.ModelAdmin):
 
     @admin.display(description='Рецепты')
     def recipes_count(self, ingredient):
-        return Recipe.objects.filter(products__ingredient=ingredient).count() 
+        return Recipe.objects.filter(products__ingredient=ingredient).count()
 
 admin.site.unregister(Group)
