@@ -160,7 +160,7 @@ class ProductInLine(admin.TabularInline):
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'author', 'cooking_time', 'preview_image',
+        'name', 'author_username', 'cooking_time', 'preview_image',
         'preview_ingredients', 'preview_tags'
     )
     list_filter = ('tags', CookingTimeFilter)
@@ -176,6 +176,10 @@ class RecipeAdmin(admin.ModelAdmin):
         form.base_fields["author"].label_from_instance = self.author_username
         return form
 
+    @admin.display(description='Автор')
+    def author_username(self, recipe):
+        return recipe.author.username
+
     @mark_safe
     @admin.display(description='Изображение')
     def preview_image(self, recipe):
@@ -185,8 +189,8 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Ингредиенты')
     def preview_ingredients(self, recipe):
         return '<br>'.join(
-            f'{product.ingredient.name[:20]} {product.amount} '
-            f'{product.ingredient.measurement_unit}'
+            f'{product.ingredient.name[:20]} = {product.amount} '
+            f'{product.ingredient.measurement_unit}.'
             for product
             in recipe.products.all()
         )

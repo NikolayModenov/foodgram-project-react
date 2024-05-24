@@ -55,8 +55,8 @@ class Follow(models.Model):
                 name='unique_author'
             )
         ]
-        verbose_name = 'Подписчик'
-        verbose_name_plural = 'Подписчики'
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
         ordering = ('user', 'author')
 
     def __str__(self):
@@ -167,8 +167,8 @@ class RecipeSubscribeBase(models.Model):
 class Favorite(RecipeSubscribeBase):
 
     class Meta(RecipeSubscribeBase.Meta):
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранное'
+        verbose_name = 'Подписка на рецепт'
+        verbose_name_plural = 'Подписки на рецепты'
 
 
 class Product(models.Model):
@@ -202,4 +202,4 @@ class ShoppingCart(RecipeSubscribeBase):
 
     class Meta(RecipeSubscribeBase.Meta):
         verbose_name = 'Корзина покупок'
-        verbose_name_plural = 'Корзина покупок'
+        verbose_name_plural = 'Список корзин покупок'

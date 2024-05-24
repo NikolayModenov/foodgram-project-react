@@ -149,6 +149,11 @@ class FollowingSerializer(FoodgramUserSerializer):
             *FoodgramUserSerializer.Meta.fields, 'recipes', 'recipes_count',
         )
 
+    def to_representation(self, instance):
+        result = super().to_representation(instance)
+        result['recipes'] = result['recipes'][:3]
+        return result
+
 
 class FollowSerializer(ModelSerializer):
     '''Serializer for follower.'''

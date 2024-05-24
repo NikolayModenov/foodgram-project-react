@@ -7,6 +7,8 @@ def format_shopping_cart_report(shopping_cart):
     time_now = dateformat.format(
         timezone.localtime(timezone.now()), 'Y-m-d H:i:s'
     )
+    for cart in shopping_cart:
+        print(f'cart = {cart}')
 
     return '\n'.join([
         'Карта покупок.',

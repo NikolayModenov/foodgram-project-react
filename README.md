@@ -104,9 +104,9 @@
 6. Запустите backend сервер:
 
 - ```python manage.py migrate``` - запуск миграций в базе данных.
-- ```python manage.py runserver``` - локальный запуск backend сервера.
 - ```python manage.py loaddata data/tags.json``` - наполнение базы данных тэгами.
 - ```python manage.py loaddata data/ingredients.json``` - наполнение базы данных ингредиентами.
+- ```python manage.py runserver``` - локальный запуск backend сервера.
 
 ### Команды для наполнения баы данных на сервере
 

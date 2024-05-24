@@ -124,7 +124,6 @@ class RecipeViewSet(ModelViewSet):
     filterset_class = RecipeFilter
 
     def make_ingredients(self, serializer, recipe=None):
-        print(serializer.validated_data)
 
         ingredients_data = serializer.validated_data.pop('products')
         if recipe:
@@ -163,8 +162,9 @@ class RecipeViewSet(ModelViewSet):
             'recipe__products__ingredient_id',
             unit=F('recipe__products__ingredient__measurement_unit'),
             name=F('recipe__products__ingredient__name'),
-        ).annotate(amount=Sum('recipe__products__amount'),)
-        print(f'shopping_cart = {shopping_cart}')
+        ).annotate(
+            amount=Sum('recipe__products__amount')
+        ).order_by('recipe__products__ingredient_id')
         return FileResponse(format_shopping_cart_report(shopping_cart))
 
     def change_recipe_related_entries(self, pk, table, err_message):
