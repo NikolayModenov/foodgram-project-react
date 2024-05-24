@@ -160,7 +160,7 @@ class ProductInLine(admin.TabularInline):
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'author_username', 'cooking_time', 'preview_image',
+        'name', 'username', 'cooking_time', 'preview_image',
         'preview_ingredients', 'preview_tags'
     )
     list_filter = ('tags', CookingTimeFilter)
@@ -177,7 +177,7 @@ class RecipeAdmin(admin.ModelAdmin):
         return form
 
     @admin.display(description='Автор')
-    def author_username(self, recipe):
+    def username(self, recipe):
         return recipe.author.username
 
     @mark_safe
